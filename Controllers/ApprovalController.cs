@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CIPLOK_SI_BE.Controllers
 {
+    [Route("api/approval")]
     public class ApprovalController : ControllerBase
     {
         private readonly IApprovalService _approvalService;
