@@ -27,51 +27,30 @@ namespace CIPLOK_SI_BE.Service
             _encryptionKey = configuration.GetValue<string>("AppSettings:EncryptionKey"); ;
         }
 
-        public async Task<ResponseModel<LoginResponseDTO?>> LoginAsync(LoginDTO loginRequest)
+        public async Task<LoginResponseDTO?> LoginAsync(LoginDTO loginRequest)
         {
-
-
             var user = await _context.TBL_MSUSERS
-                .Include(u => u.Role).Include(u => u.Majelis)
-                .FirstOrDefaultAsync(u => u.UserName == loginRequest.Username);
+                .Include(u => u.Role)
+                .Include(u => u.Majelis)
+                .FirstOrDefaultAsync(u => u.UserName == loginRequest.Email);
 
+            if (user == null)
+                return null;
 
-            if (user == null) {
-                return new ResponseModel<LoginResponseDTO?>
-                {
-                    StatusCode = HttpStatusCode.Unauthorized,
-                    Status = "Failed",
-                    Message = "Username or Password incorrect",
-                    Data = null
-                };
-            }
+            var decryptedPassword = Decrypt(user.Password);
+            if (decryptedPassword != loginRequest.Password)
+                return null;
 
-            var decryptPassword = Decrypt(user.Password);
-            if (decryptPassword != loginRequest.Password)
-            {
-                return new ResponseModel<LoginResponseDTO?>
-                {
-                    StatusCode = HttpStatusCode.Unauthorized,
-                    Status = "Failed",
-                    Message = "Username or Password incorrect",
-                    Data = null
-                };
-            }
             var token = GenerateJwtToken(user);
 
-            var data = new LoginResponseDTO
+            return new LoginResponseDTO
             {
                 Token = token,
-                FullName = user?.FullName ?? "",
-            };
-            return new ResponseModel<LoginResponseDTO?>
-            {
-                StatusCode = HttpStatusCode.OK,
-                Status = "success",
-                Message = "Login Successfully",
-                Data = data
+                FullName = user.FullName ?? string.Empty,
+                RoleName = user.Role?.RoleName ?? string.Empty
             };
         }
+
 
 
         public string Decrypt(string cipherText)

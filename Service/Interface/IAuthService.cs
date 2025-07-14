@@ -5,6 +5,6 @@ namespace CIPLOK_SI_BE.Service.Interface
 {
     public interface IAuthService
     {
-        Task<ResponseModel<LoginResponseDTO>> LoginAsync(LoginDTO data);
+        Task<LoginResponseDTO> LoginAsync(LoginDTO data);
     }
 }
