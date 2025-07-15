@@ -11,6 +11,8 @@ namespace CIPLOK_SI_BE.Service.Interface
 
         Task<ResponseModel<bool>> UpdateDataMajelis(int majelisID,MajelisDTO data);
 
+        Task<ResponseModel<bool>> UpdateDataJemaat(int userID, UserDTO data);
+
 
         Task<ResponseModel<IEnumerable<UserDTO>>> GetAllDataJemaat(int pageNumber,
             int pageSize);

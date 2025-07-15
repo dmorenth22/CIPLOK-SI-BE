@@ -54,21 +54,30 @@ namespace CIPLOK_SI_BE.Service
 
                 };
             }
-            else
+            else if (user.RoleID == 3)
             {
-                
                 return new LoginResponseDTO
                 {
                     Token = token,
                     FullName = user.FullName ?? string.Empty,
                     RoleName = user.Role?.RoleName ?? string.Empty,
-                    AnggotaKomisi = user.AnggotaKomisi,
-                    JabatanPenatua = user.Majelis.JabatanPenatua,
-
+                    AnggotaKomisi = user.AnggotaKomisi ?? string.Empty,
                 };
 
             }
-            
+            else
+            {
+                return new LoginResponseDTO
+                {
+                    Token = token,
+                    FullName = user.FullName ?? string.Empty,
+                    RoleName = user.Role?.RoleName ?? string.Empty,
+                    AnggotaKomisi = user.AnggotaKomisi ?? string.Empty,
+                    JabatanPenatua = user.Majelis.JabatanPenatua
+                };
+            }
+
+
         }
 
 

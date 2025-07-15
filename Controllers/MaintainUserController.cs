@@ -40,7 +40,7 @@ namespace CIPLOK_SI_BE.Controllers
 
         [HttpPost("getAllDataJemaat")]
         public async Task<IActionResult> getAllDataJemaat([FromQuery] int pageNumber = 1,
-       [FromQuery] int pageSize = 10)
+        [FromQuery] int pageSize = 10)
         {
             var response = await _userService.GetAllDataJemaat(pageNumber, pageSize);
             return StatusCode((int)response.StatusCode, response);
@@ -59,6 +59,13 @@ namespace CIPLOK_SI_BE.Controllers
         public async Task<IActionResult> UpdateDataMajelis(int majelisID, [FromBody] MajelisDTO data)
         {
             var response = await _userService.UpdateDataMajelis(majelisID, data);
+            return StatusCode((int)response.StatusCode, response);
+        }
+
+        [HttpPost("updateDataJemaat/{userID}")]
+        public async Task<IActionResult>UpdateDataJemaat(int userID, [FromBody] UserDTO data)
+        {
+            var response = await _userService.UpdateDataJemaat(userID, data);
             return StatusCode((int)response.StatusCode, response);
         }
 

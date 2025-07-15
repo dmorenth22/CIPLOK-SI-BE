@@ -28,11 +28,12 @@ namespace CIPLOK_SI_BE.Service
         {
             try
             {
-                var query = _context.TBL_MSUSERS
-                    .AsQueryable();
+                var query = _context.TBL_MSUSERS.AsQueryable();
 
+                // Fetch total count first
                 int totalCount = await query.CountAsync();
 
+                // Fetch the data without decrypting the password in the query
                 var jemaatDataList = await query
                     .Skip((pageNumber - 1) * pageSize)
                     .Take(pageSize)
@@ -43,10 +44,13 @@ namespace CIPLOK_SI_BE.Service
                         PhoneNo = u.PhoneNo ?? "",
                         AlternatePhoneNo = u.AlternatePhoneNo,
                         Address = u.Address,
+                        Email = u.UserName,
+                        Password = u.Password,  // Fetch encrypted password
                         AnggotaKomisi = u.AnggotaKomisi
                     })
                     .ToListAsync();
 
+                // Check if the data is found
                 if (jemaatDataList == null || !jemaatDataList.Any())
                 {
                     return new ResponseModel<IEnumerable<UserDTO>>
@@ -62,6 +66,13 @@ namespace CIPLOK_SI_BE.Service
                     };
                 }
 
+                // Loop through the data and decrypt the passwords
+                foreach (var user in jemaatDataList)
+                {
+                    user.Password = Decrypt(user.Password);  // Decrypt the password after fetching the data
+                }
+
+                // Return the response model with decrypted data
                 return new ResponseModel<IEnumerable<UserDTO>>
                 {
                     StatusCode = HttpStatusCode.OK,
@@ -76,6 +87,7 @@ namespace CIPLOK_SI_BE.Service
             }
             catch (Exception ex)
             {
+                // Handle any exceptions that occur during the process
                 return new ResponseModel<IEnumerable<UserDTO>>
                 {
                     StatusCode = HttpStatusCode.InternalServerError,
@@ -89,6 +101,7 @@ namespace CIPLOK_SI_BE.Service
                 };
             }
         }
+
         public async Task<ResponseModel<bool>> AddNewUser(UserDTO data)
         {
             if (data == null)
@@ -130,6 +143,52 @@ namespace CIPLOK_SI_BE.Service
                     Status = "Success",
                     Message = "Create User has been successfully added.",
                     Data = result
+                };
+            }
+            catch (Exception ex)
+            {
+                return GenerateErrorResponse(ex.Message, HttpStatusCode.InternalServerError);
+            }
+        }
+
+        public async Task<ResponseModel<bool>> UpdateDataJemaat(int userID, UserDTO request)
+        {
+            try
+            {
+                var httpContext = _httpContextAccessor.HttpContext;
+                var user = httpContext?.User;
+
+                var role = user?.FindFirst("role")?.Value;
+                var jabatan = user?.FindFirst("jabatan")?.Value;
+                var fullName = user?.FindFirst("fullName")?.Value;
+                var id = user?.FindFirst("idUser")?.Value;
+                var jemaat = await _context.TBL_MSUSERS.FindAsync(userID);
+                if (jemaat == null)
+                {
+                    return new ResponseModel<bool>
+                    {
+                        StatusCode = HttpStatusCode.NotFound,
+                        Status = "Failed",
+                        Message = "Jemaat Account not found.",
+                        Data = false
+                    };
+                }
+                jemaat.AlternatePhoneNo = request.AlternatePhoneNo;
+                jemaat.PhoneNo = request.PhoneNo;
+                jemaat.FullName = request.FullName;
+                jemaat.Password = Encrypt(request.Password);
+                jemaat.AnggotaKomisi = request.AnggotaKomisi;
+                jemaat.UserName = request.Email;
+                jemaat.LAST_UPDATED_BY = fullName;
+                jemaat.LAST_UPDATED_DATE = DateTime.Now;
+                var isUpdated = await _context.SaveChangesAsync() > 0;
+
+                return new ResponseModel<bool>
+                {
+                    StatusCode = isUpdated ? HttpStatusCode.OK : HttpStatusCode.BadRequest,
+                    Status = isUpdated ? "Success" : "Failed",
+                    Message = isUpdated ? "Success Update Data Jemaat." : "Cannot Update Data Jemaat.",
+                    Data = isUpdated
                 };
             }
             catch (Exception ex)
@@ -442,6 +501,38 @@ namespace CIPLOK_SI_BE.Service
         {
             var jakartaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Jakarta");
             return TimeZoneInfo.ConvertTime(utcDate, TimeZoneInfo.Utc, jakartaTimeZone);
+        }
+
+        public string Decrypt(string cipherText)
+        {
+            var fullCipher = Convert.FromBase64String(cipherText);
+
+            using (var aes = Aes.Create())
+            {
+                aes.Key = Convert.FromBase64String(_encryptionKey);
+
+                var iv = new byte[aes.BlockSize / 8];
+                var cipher = new byte[fullCipher.Length - iv.Length];
+                Array.Copy(fullCipher, 0, iv, 0, iv.Length);
+                Array.Copy(fullCipher, iv.Length, cipher, 0, cipher.Length);
+
+                aes.IV = iv;
+                aes.Padding = PaddingMode.PKCS7;
+
+                using (var decryptor = aes.CreateDecryptor(aes.Key, aes.IV))
+                {
+                    using (var ms = new System.IO.MemoryStream(cipher))
+                    {
+                        using (var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
+                        {
+                            using (var reader = new System.IO.StreamReader(cs))
+                            {
+                                return reader.ReadToEnd();
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

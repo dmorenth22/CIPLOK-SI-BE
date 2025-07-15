@@ -129,6 +129,8 @@ namespace CIPLOK_SI_BE.Service
                                       header.Description,
                                       header.MJRequest,
                                       header.CREATED_DATE,
+                                      header.RoomName,
+                                      header.CREATED_BY
                                   }).ToListAsync();
 
                 if (!data.Any())
@@ -168,7 +170,7 @@ namespace CIPLOK_SI_BE.Service
 
                 var criteriaMap = criteriaList.ToDictionary(c => c.IDCriteria, c => c);
 
-                var groupedDetails = details.GroupBy(d => d.TransactionID).ToDictionary(g => g.Key, g => g.ToList());
+                var groupedDetails = details.GroupBy(d => d.TransactionID).ToDictionary(g => g.Key, g => g.OrderBy(x=>x.CriteriaID).ToList());
 
                 var reservationData = new List<ExpandoObject>();
 
@@ -178,10 +180,10 @@ namespace CIPLOK_SI_BE.Service
                     var dict = (IDictionary<string, object>)row;
 
                     dict["transactionID"] = item.TransactionID;
-                    dict["reservationDate"] = item.ReservationDate;
+                    dict["reservationDate"] = item.ReservationDate.ToString("dd-MMMM-yyyy");
                     dict["startTime"] = item.StartTime;
-                    dict["description"] = item.Description;
-                    dict["mjMengetahui"] = item.MJRequest;
+                    dict["roomName"] = item.RoomName;
+                    //dict["description"] = item.Description;
 
                     foreach (var crit in criteriaMap.Values)
                     {
@@ -198,6 +200,9 @@ namespace CIPLOK_SI_BE.Service
                             }
                         }
                     }
+                    dict["mjMengetahui"] = item.MJRequest;
+                    dict["createdBy"] = item.CREATED_BY;
+
 
                     reservationData.Add(row);
                 }
