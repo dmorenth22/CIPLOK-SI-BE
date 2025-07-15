@@ -6,15 +6,21 @@ namespace CIPLOK_SI_BE.DTO
     public class MajelisDTO
     {
 
-        [Required]
         [JsonPropertyName("fullName")]
         public string? FullName { get; set; }
 
-        [Required]
+        [JsonPropertyName("userID")]
+        public int? userID { get; set; }
+
+
+        [JsonPropertyName("phoneNo")]
+        public string? PhoneNo { get; set; }
+
+      
         [JsonPropertyName("codePnt")]
         public string? CodePnt { get; set; }
 
-        [Required]
+    
         [JsonPropertyName("jabatanPenatua")]
         public string? JabatanPenatua { get; set; }
 

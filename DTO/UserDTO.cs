@@ -4,8 +4,10 @@ namespace CIPLOK_SI_BE.DTO
 {
     public class UserDTO
     {
-        [JsonPropertyName("userName")]
-        public string? UserName { get; set; }
+        [JsonPropertyName("userID")]
+        public int? UserID { get; set; }
+        [JsonPropertyName("email")]
+        public string? Email { get; set; }
      
         [JsonPropertyName("anggotaKomisi")]
         public string? AnggotaKomisi { get; set; }

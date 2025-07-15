@@ -4,17 +4,26 @@ namespace CIPLOK_SI_BE.DTO
 {
     public class MajelistDataDTO
     {
-        [JsonPropertyName("codePenatua")]
-        public string CodePenatua { get; set; }  = string.Empty;
+        [JsonPropertyName("majelisID")]
+        public int? MajelisID { get; set; }
 
-        [JsonPropertyName("namaPenatua")]
-        public string NamaPenatua { get; set; }= string.Empty;
+        [JsonPropertyName("userID")]
+        public int? UserID { get; set; }
+
+        [JsonPropertyName("codePnt")]
+        public string? CodePnt { get; set; }
+
+        [JsonPropertyName("fullName")]
+        public string? FullName { get; set; }
 
         [JsonPropertyName("jabatanPenatua")]
         public string JabatanPenatua { get; set; }= string.Empty;
 
-        [JsonPropertyName("phoneNumber")]
-        public string PhoneNumber { get; set; }= string.Empty;
+        [JsonPropertyName("phoneNo")]
+        public string? PhoneNo { get; set; }
+
+        [JsonPropertyName("alamatPenatua")]
+        public string? AlamatPenatua { get; set; }
 
         [JsonPropertyName("startDate")]
         public DateTime? StartDate { get; set; }

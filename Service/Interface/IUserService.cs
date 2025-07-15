@@ -18,5 +18,7 @@ namespace CIPLOK_SI_BE.Service.Interface
 
         Task<ResponseModel<IEnumerable<SettingsDTO>>> ListDataJabatan();
 
+        Task<ResponseModel<IEnumerable<UserDTO>>> FetchDataUserList(string name);
+
     }
 }

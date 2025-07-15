@@ -1,4 +1,5 @@
-﻿using CIPLOK_SI_BE.Context;
+﻿using Azure.Core;
+using CIPLOK_SI_BE.Context;
 using CIPLOK_SI_BE.DTO;
 using CIPLOK_SI_BE.Models;
 using CIPLOK_SI_BE.Models.Master;
@@ -6,6 +7,7 @@ using CIPLOK_SI_BE.Service.Interface;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Security.Cryptography;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 
 namespace CIPLOK_SI_BE.Service
@@ -14,11 +16,13 @@ namespace CIPLOK_SI_BE.Service
     {
         private readonly AppDBContext _context;
         private readonly string _encryptionKey;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public UserService(AppDBContext context, IConfiguration configuration)
+        public UserService(AppDBContext context, IConfiguration configuration,IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _encryptionKey = configuration.GetValue<string>("AppSettings:EncryptionKey");
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<ResponseModel<bool>> AddNewUser(UserDTO data)
@@ -39,7 +43,7 @@ namespace CIPLOK_SI_BE.Service
                     Password = Encrypt(data.Password),
                     AlternatePhoneNo = data.AlternatePhoneNo,
                     PhoneNo = data.PhoneNo,
-                    UserName = data.UserName,
+                    UserName = data.Email,
                     AnggotaKomisi = data.AnggotaKomisi,
                     CREATED_BY = "system",
                     LAST_UPDATED_DATE = null
@@ -69,17 +73,30 @@ namespace CIPLOK_SI_BE.Service
             {
                 return GenerateErrorResponse("Add Majelis Failed", HttpStatusCode.BadRequest);
             }
+            if(data.userID == 0 || data.userID.ToString() == ""){
+                return GenerateErrorResponse("Add Majelis Failed, Theres No Data", HttpStatusCode.BadRequest);
+            }
+            var httpContext = _httpContextAccessor.HttpContext;
+            var user = httpContext?.User;
 
+            var role = user?.FindFirst("role")?.Value;
+            var jabatan = user?.FindFirst("jabatan")?.Value;
+            var fullName = user?.FindFirst("fullName")?.Value;
+            var id = user?.FindFirst("idUser")?.Value;
             try
             {
+                var startDateInJakarta = ConvertToJakartaTimeZone(data.StartDate);
+                var endDateInJakarta = ConvertToJakartaTimeZone(data.EndDate);
+                var checkCodePnt = await _context.TBL_MSMAJELIS.Where(f => f.CodePnt == data.CodePnt).ToListAsync();
+                if (!checkCodePnt.Any()) { 
                 var userData = new TBL_MSMAJELIS
                 {
                     CodePnt = data.CodePnt,
                     JabatanPenatua = data.JabatanPenatua,
-                    StartDate = data.StartDate,
-                    EndDate = data.EndDate,
+                    StartDate = startDateInJakarta,
+                    EndDate = endDateInJakarta,
                     LAST_UPDATED_DATE = null,
-                    CREATED_BY = "system"
+                    CREATED_BY = fullName
 
                 };
 
@@ -91,7 +108,7 @@ namespace CIPLOK_SI_BE.Service
                 if (updateDataUser != null) {
                     updateDataUser.RoleID = 2;
                     updateDataUser.MajelisID = userData.ID;
-                    updateDataUser.LAST_UPDATED_BY = "system";
+                    updateDataUser.LAST_UPDATED_BY = fullName;
                     updateDataUser.LAST_UPDATED_DATE = DateTime.Now;
                 }
                 await _context.SaveChangesAsync();
@@ -102,6 +119,17 @@ namespace CIPLOK_SI_BE.Service
                     Message = "Create Majelis has been successfully added.",
                     Data = result
                 };
+                }
+                else
+                {
+                    return new ResponseModel<bool>
+                    {
+                        StatusCode = HttpStatusCode.BadRequest,
+                        Status = "failed",
+                        Message = "Data Cannot be added, Code Penatua already exists",
+                        Data = false
+                    };
+                }
             }
             catch (Exception ex)
             {
@@ -113,7 +141,7 @@ namespace CIPLOK_SI_BE.Service
         {
             try
             {
-                var query = _context.TBL_MSUSERS
+                var query = _context.TBL_MSUSERS.Where(x=>x.RoleID == 2)
                     .Include(u => u.Majelis)
                     .AsQueryable();
 
@@ -124,12 +152,15 @@ namespace CIPLOK_SI_BE.Service
                     .Take(pageSize)
                     .Select(u => new MajelistDataDTO
                     {
-                        CodePenatua = u.Majelis.CodePnt ?? null,
-                        NamaPenatua = u.FullName ?? "",
+                        MajelisID = u.MajelisID,
+                        UserID = u.ID,
+                        CodePnt = u.Majelis.CodePnt ?? null,
+                        FullName = u.FullName ?? "",
                         JabatanPenatua = u.Majelis.JabatanPenatua ?? null,
-                        PhoneNumber = u.PhoneNo ?? "",
+                        PhoneNo = u.PhoneNo ?? "",
                         StartDate = u.Majelis.StartDate,
                         EndDate = u.Majelis.EndDate,
+                        AlamatPenatua = u.Address
                     })
                     .ToListAsync();
 
@@ -180,6 +211,13 @@ namespace CIPLOK_SI_BE.Service
         {
             try
             {
+                var httpContext = _httpContextAccessor.HttpContext;
+                var user = httpContext?.User;
+
+                var role = user?.FindFirst("role")?.Value;
+                var jabatan = user?.FindFirst("jabatan")?.Value;
+                var fullName = user?.FindFirst("fullName")?.Value;
+                var id = user?.FindFirst("idUser")?.Value;
                 var majelis = await _context.TBL_MSMAJELIS.FindAsync(majelisID);
                 if (majelis == null)
                 {
@@ -192,11 +230,15 @@ namespace CIPLOK_SI_BE.Service
                     };
                 }
 
+
+                var startDateInJakarta = ConvertToJakartaTimeZone(request.StartDate);
+                var endDateInJakarta = ConvertToJakartaTimeZone(request.EndDate);
+
                 majelis.CodePnt = request.CodePnt;
                 majelis.JabatanPenatua = request.JabatanPenatua;
-                majelis.StartDate = request.StartDate;
-                majelis.EndDate = request.EndDate;
-                majelis.LAST_UPDATED_BY = "system";
+                majelis.StartDate = startDateInJakarta;
+                majelis.EndDate = endDateInJakarta;
+                majelis.LAST_UPDATED_BY = fullName;
                 majelis.LAST_UPDATED_DATE = DateTime.Now;
                 var isUpdated = await _context.SaveChangesAsync() > 0;
 
@@ -285,6 +327,50 @@ namespace CIPLOK_SI_BE.Service
                     Data = null
                 };
             }
+        }
+
+        public async Task<ResponseModel<IEnumerable<UserDTO>>> FetchDataUserList(string name)
+        {
+            try
+            {
+
+                var users = await _context.TBL_MSUSERS
+               .Include(u => u.Role)
+               .Include(u => u.Majelis).Where(f=>f.FullName!.Contains(name))
+               .ToListAsync();
+
+                // Map the fetched data to UserDTO
+                var userList = users.Select(user => new UserDTO
+                {
+                    UserID = user.ID,
+                    PhoneNo = user.PhoneNo,
+                    Email = user.UserName,
+                    FullName = user.FullName,
+                    Address = user.Address,
+                }).ToList();
+                return new ResponseModel<IEnumerable<UserDTO>>
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Status = "Success",
+                    Message = "Data fetched successfully",
+                    Data = userList
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ResponseModel<IEnumerable<UserDTO>>
+                {
+                    StatusCode = HttpStatusCode.InternalServerError,
+                    Status = "Failed",
+                    Message = $"Error: {ex.Message}",
+                    Data = null
+                };
+            }
+        }
+        public static DateTime ConvertToJakartaTimeZone(DateTime utcDate)
+        {
+            var jakartaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Jakarta");
+            return TimeZoneInfo.ConvertTime(utcDate, TimeZoneInfo.Utc, jakartaTimeZone);
         }
     }
 }

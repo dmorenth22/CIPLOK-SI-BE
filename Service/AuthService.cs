@@ -36,19 +36,39 @@ namespace CIPLOK_SI_BE.Service
 
             if (user == null)
                 return null;
-
             var decryptedPassword = Decrypt(user.Password);
             if (decryptedPassword != loginRequest.Password)
                 return null;
 
             var token = GenerateJwtToken(user);
 
-            return new LoginResponseDTO
+            if (user.RoleID == 1)
             {
-                Token = token,
-                FullName = user.FullName ?? string.Empty,
-                RoleName = user.Role?.RoleName ?? string.Empty
-            };
+                return new LoginResponseDTO
+                {
+                    Token = token,
+                    FullName = user.FullName ?? string.Empty,
+                    RoleName = user.Role?.RoleName ?? string.Empty,
+                    //AnggotaKomisi = user.AnggotaKomisi,
+                    //JabatanPenatua = user.Majelis.JabatanPenatua,
+
+                };
+            }
+            else
+            {
+                
+                return new LoginResponseDTO
+                {
+                    Token = token,
+                    FullName = user.FullName ?? string.Empty,
+                    RoleName = user.Role?.RoleName ?? string.Empty,
+                    AnggotaKomisi = user.AnggotaKomisi,
+                    JabatanPenatua = user.Majelis.JabatanPenatua,
+
+                };
+
+            }
+            
         }
 
 
@@ -94,7 +114,9 @@ namespace CIPLOK_SI_BE.Service
             {
                 new Claim("id", user.ID.ToString()),
                 new Claim("phoneNo", user.PhoneNo ?? ""),
-                new Claim("role", user.Role?.RoleName ?? "")
+                new Claim("role", user.Role?.RoleName ?? ""),
+                new Claim("idUser",user.ID.ToString()),
+                new Claim("fullName",user.FullName!)
             };
             if (!string.IsNullOrEmpty(user.Majelis?.JabatanPenatua))
             {
