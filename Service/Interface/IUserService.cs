@@ -12,11 +12,14 @@ namespace CIPLOK_SI_BE.Service.Interface
         Task<ResponseModel<bool>> UpdateDataMajelis(int majelisID,MajelisDTO data);
 
 
+        Task<ResponseModel<IEnumerable<UserDTO>>> GetAllDataJemaat(int pageNumber,
+            int pageSize);
+
 
         Task<ResponseModel<IEnumerable<MajelistDataDTO>>> GetDataMajelis(int pageNumber,
             int pageSize);
 
-        Task<ResponseModel<IEnumerable<SettingsDTO>>> ListDataJabatan();
+        Task<ResponseModel<IEnumerable<SettingsDTO>>> ListDataJabatan(string codeDesc);
 
         Task<ResponseModel<IEnumerable<UserDTO>>> FetchDataUserList(string name);
 

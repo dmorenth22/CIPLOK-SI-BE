@@ -7,7 +7,6 @@ using CIPLOK_SI_BE.Service.Interface;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Security.Cryptography;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 
 namespace CIPLOK_SI_BE.Service
@@ -25,13 +24,84 @@ namespace CIPLOK_SI_BE.Service
             _httpContextAccessor = httpContextAccessor;
         }
 
+        public async Task<ResponseModel<IEnumerable<UserDTO>>> GetAllDataJemaat(int pageNumber, int pageSize)
+        {
+            try
+            {
+                var query = _context.TBL_MSUSERS
+                    .AsQueryable();
+
+                int totalCount = await query.CountAsync();
+
+                var jemaatDataList = await query
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(u => new UserDTO
+                    {
+                        UserID = u.ID,
+                        FullName = u.FullName ?? "",
+                        PhoneNo = u.PhoneNo ?? "",
+                        AlternatePhoneNo = u.AlternatePhoneNo,
+                        Address = u.Address,
+                        AnggotaKomisi = u.AnggotaKomisi
+                    })
+                    .ToListAsync();
+
+                if (jemaatDataList == null || !jemaatDataList.Any())
+                {
+                    return new ResponseModel<IEnumerable<UserDTO>>
+                    {
+                        StatusCode = HttpStatusCode.NotFound,
+                        Status = "error",
+                        Message = "No data found",
+                        Data = new List<UserDTO>(),
+                        PageNumber = pageNumber,
+                        PageSize = pageSize,
+                        TotalData = totalCount,
+                        TotalPages = 0
+                    };
+                }
+
+                return new ResponseModel<IEnumerable<UserDTO>>
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Status = "success",
+                    Message = "Data retrieved successfully",
+                    Data = jemaatDataList,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalData = totalCount,
+                    TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ResponseModel<IEnumerable<UserDTO>>
+                {
+                    StatusCode = HttpStatusCode.InternalServerError,
+                    Status = "error",
+                    Message = $"An error occurred: {ex.Message}",
+                    Data = new List<UserDTO>(),
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalData = 0,
+                    TotalPages = 0
+                };
+            }
+        }
         public async Task<ResponseModel<bool>> AddNewUser(UserDTO data)
         {
             if (data == null)
             {
                 return GenerateErrorResponse("Add User Failed", HttpStatusCode.BadRequest);
             }
+            var httpContext = _httpContextAccessor.HttpContext;
+            var user = httpContext?.User;
 
+            var role = user?.FindFirst("role")?.Value;
+            var jabatan = user?.FindFirst("jabatan")?.Value;
+            var fullName = user?.FindFirst("fullName")?.Value;
+            var id = user?.FindFirst("idUser")?.Value;
             try
             {
                 var userData = new TBL_MSUSERS
@@ -45,7 +115,8 @@ namespace CIPLOK_SI_BE.Service
                     PhoneNo = data.PhoneNo,
                     UserName = data.Email,
                     AnggotaKomisi = data.AnggotaKomisi,
-                    CREATED_BY = "system",
+                    CREATED_DATE = DateTime.Now,
+                    CREATED_BY = fullName,
                     LAST_UPDATED_DATE = null
                    
                 };
@@ -298,11 +369,11 @@ namespace CIPLOK_SI_BE.Service
             }
         }
 
-        public async Task<ResponseModel<IEnumerable<SettingsDTO>>> ListDataJabatan()
+        public async Task<ResponseModel<IEnumerable<SettingsDTO>>> ListDataJabatan(string codeDesc)
         {
             try
             {
-                var data = await _context.TBL_SETTINGS.Where(f=>f.CodeSettings == "JCODE").ToListAsync();
+                var data = await _context.TBL_SETTINGS.Where(f=>f.CodeSettings == codeDesc).ToListAsync();
                 List<SettingsDTO> list = data.Select(jabatan => new SettingsDTO
                 {
                    DescriptionSettings = jabatan.DescriptionSettings,

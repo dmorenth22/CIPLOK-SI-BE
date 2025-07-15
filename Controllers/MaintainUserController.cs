@@ -38,6 +38,14 @@ namespace CIPLOK_SI_BE.Controllers
             return StatusCode((int)result.StatusCode, result);
         }
 
+        [HttpPost("getAllDataJemaat")]
+        public async Task<IActionResult> getAllDataJemaat([FromQuery] int pageNumber = 1,
+       [FromQuery] int pageSize = 10)
+        {
+            var response = await _userService.GetAllDataJemaat(pageNumber, pageSize);
+            return StatusCode((int)response.StatusCode, response);
+        }
+
         [HttpPost("getDataMajelis")]
         public async Task<IActionResult> GetListDataMajelis([FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 10)
@@ -56,12 +64,14 @@ namespace CIPLOK_SI_BE.Controllers
 
 
 
-        [HttpGet("jabatanList")]
-        public async Task<IActionResult> JabatanList()
+        [HttpGet("settingsAPI/{codeDesc}")]
+        public async Task<IActionResult> settingsAPI(string codeDesc)
         {
-            var result = await _userService.ListDataJabatan();
+            var result = await _userService.ListDataJabatan(codeDesc);
             return StatusCode((int)result.StatusCode, result);
         }
+
+
 
         [HttpGet("getAllDataUser")]
         public async Task<IActionResult> FetchDataUserList([FromQuery] string query)
