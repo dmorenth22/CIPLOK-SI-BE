@@ -33,7 +33,7 @@ namespace CIPLOK_SI_BE.Service
             
                 var header = new TBL_TR_HEADER_RESERVATION
                 {
-                    ReservationDate = data.ReservationDate.Date,
+                    //ReservationDate = data.ReservationDate.ToString("dd-MMM-yyyy"),
                     StartTime = data.StartTime,
                     RoomName = data.RoomName,
                     Description = data.Description,
@@ -108,11 +108,13 @@ namespace CIPLOK_SI_BE.Service
                 {
                     TransactionID = header.TransactionID,
                     RoomName = header.RoomName,
-                    ReservationDate = header.ReservationDate,
+                    ReservationDate = header.ReservationDate.ToString("dd-MMM-yyyy"),
                     StartTime = header.StartTime,
                     STATUS = header.STATUS,
                     Description = header.Description,
                     MJRequest = header.MJRequest,
+                    CreatedBy = header.CREATED_BY,
+                    CreatedDate = header.CREATED_DATE!.Value.ToString("dd-MMM-yyyy"),
                     Details = details
                         .Where(d => d.TransactionID == header.TransactionID)
                         .Select(d => new DetailDTO
@@ -238,11 +240,13 @@ namespace CIPLOK_SI_BE.Service
                 {
                     TransactionID = getDataOrderByID.TransactionID,
                     RoomName = getDataOrderByID.RoomName,
-                    ReservationDate = getDataOrderByID.ReservationDate,
+                    ReservationDate = getDataOrderByID.ReservationDate.ToString("dd-MMM-yyyy"),
                     StartTime = getDataOrderByID.StartTime,
                     STATUS = getDataOrderByID.STATUS,
                     Description = getDataOrderByID.Description,
                     MJRequest = getDataOrderByID.MJRequest,
+                    CreatedBy = getDataOrderByID.CREATED_BY,
+                    CreatedDate = getDataOrderByID.CREATED_DATE!.Value.ToString("dd-MMM-yyyy"),
                     Details = reservationDetails
                 };
 

@@ -5,6 +5,8 @@ using CIPLOK_SI_BE.Models.Master;
 using CIPLOK_SI_BE.Service.Interface;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
+using static CIPLOK_SI_BE.DTO.CriteriaDTO;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace CIPLOK_SI_BE.Service
 {
@@ -39,7 +41,7 @@ namespace CIPLOK_SI_BE.Service
                    CREATED_BY = "system",
                    LAST_UPDATED_DATE = null,
                    Bobot = data.Bobot,
-                   Parameter = data.Parameter,
+                   Parameter = data.Parameter  == "Maximal" ? true : false,
 
                 };
                 _context.TBL_MSCRITERIA.Add(criteriaData);
@@ -83,7 +85,7 @@ namespace CIPLOK_SI_BE.Service
                 }
                 data.CriteriaName = request.CriteriaName;
                 data.Bobot = request.Bobot;
-                data.Parameter = request.Parameter;
+                data.Parameter = request.Parameter == "Maximal" ? true : false;
                 data.LAST_UPDATED_BY = "system";
                 data.LAST_UPDATED_DATE = DateTime.Now;
                 List<TBL_MSSUBCRITERIA> subCriteriaToInsert = new();
@@ -138,6 +140,91 @@ namespace CIPLOK_SI_BE.Service
                 return GenerateErrorResponse(ex.Message, HttpStatusCode.InternalServerError);
             }
         }
+
+        public async Task<ResponseModel<IEnumerable<CriteriaDTO>>> getDataCriteria(int pageNumber, int pageSize)
+        {
+            try
+            {
+                // Fetch criteria data and include the related SubCriteria data using GroupJoin
+                var query = _context.TBL_MSCRITERIA
+                    .GroupJoin(
+                        _context.TBL_MSSUBCRITERIA,
+                        criteria => criteria.IDCriteria,
+                        subCriteria => subCriteria.IDCriteria,
+                        (criteria, subCriteriaGroup) => new
+                        {
+                            criteria.IDCriteria,
+                            criteria.CriteriaName,
+                            criteria.CriteriaCode,
+                            criteria.Bobot,
+                            criteria.Parameter,
+                            SubCriteria = subCriteriaGroup.Select(s => new SubCriteriaDTO
+                            {
+                                SubCriteriaName = s.SubCriteriaName,
+                                SubCriteriaBobot = s.SubCriteriaBobot,
+                                IDSubCriteria = s.IDSubCriteria
+                            }).ToList()
+                        })
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize);
+
+                int totalCount = await _context.TBL_MSCRITERIA.CountAsync();
+
+                var criteriaDTOs = await query
+                    .Select(u => new CriteriaDTO
+                    {
+                        CriteriaName = u.CriteriaName,
+                        CriteriaCode = u.CriteriaCode,
+                        Bobot = u.Bobot,
+                        Parameter = u.Parameter ? "Maksimal" : "Minimal",
+                        SubCriteria = u.SubCriteria
+                    })
+                    .ToListAsync();
+
+                if (criteriaDTOs == null || !criteriaDTOs.Any())
+                {
+                    return new ResponseModel<IEnumerable<CriteriaDTO>>
+                    {
+                        StatusCode = HttpStatusCode.NotFound,
+                        Status = "error",
+                        Message = "No data found",
+                        Data = new List<CriteriaDTO>(),
+                        PageNumber = pageNumber,
+                        PageSize = pageSize,
+                        TotalData = totalCount,
+                        TotalPages = 0
+                    };
+                }
+
+                return new ResponseModel<IEnumerable<CriteriaDTO>>
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Status = "success",
+                    Message = "Data retrieved successfully",
+                    Data = criteriaDTOs,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalData = totalCount,
+                    TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ResponseModel<IEnumerable<CriteriaDTO>>
+                {
+                    StatusCode = HttpStatusCode.InternalServerError,
+                    Status = "Error",
+                    Message = $"An error occurred: {ex.Message}",
+                    Data = new List<CriteriaDTO>(),
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalData = 0,
+                    TotalPages = 0
+                };
+            }
+        }
+
+
         private ResponseModel<bool> GenerateErrorResponse(string message, HttpStatusCode statusCode)
         {
             return new ResponseModel<bool>

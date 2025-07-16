@@ -1,4 +1,5 @@
 ﻿using CIPLOK_SI_BE.DTO;
+using CIPLOK_SI_BE.Service;
 using CIPLOK_SI_BE.Service.Interface;
 using Microsoft.AspNetCore.Mvc;
 
@@ -47,6 +48,15 @@ namespace CIPLOK_SI_BE.Controllers
 
             //var result = await _roomService.AddRoom(data);
 
+        }
+
+
+        [HttpPost("criteriaList")]
+        public async Task<IActionResult> criteriaList([FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            var result = await _criteriaService.getDataCriteria(pageNumber, pageSize);
+            return StatusCode((int)result.StatusCode, result);
         }
     }
 }

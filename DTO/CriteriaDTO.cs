@@ -5,6 +5,10 @@ namespace CIPLOK_SI_BE.DTO
 {
     public class CriteriaDTO
     {
+        [JsonPropertyName("idHeaderCriteria")]
+        public int? IDHeaderCriteria { get; set; }
+
+
         [JsonPropertyName("criteriaName")]
         public string? CriteriaName { get; set; }
 
@@ -12,17 +16,22 @@ namespace CIPLOK_SI_BE.DTO
         public int Bobot { get; set; }
 
         [JsonPropertyName("parameter")]
-        public bool Parameter { get; set; }
+        public string? Parameter { get; set; }
 
+
+        [JsonPropertyName("criteriaCode")]
+        public string? CriteriaCode { get; set; }
+
+        [JsonPropertyName("subCriteriaList")]
         public List<SubCriteriaDTO>? SubCriteria { get; set; }
 
         public class SubCriteriaDTO
         {
             [JsonPropertyName("idSubCriteria")]
-            public int IDSubCriteria { get; set; }
+            public int? IDSubCriteria { get; set; }
 
             [JsonPropertyName("idCriteria")]
-            public int IDCriteria { get; set; }
+            public int? IDCriteria { get; set; }
 
             [JsonPropertyName("subCriteriaName")]
             public string? SubCriteriaName { get; set; }

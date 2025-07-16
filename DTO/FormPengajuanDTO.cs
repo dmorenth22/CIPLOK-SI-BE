@@ -9,24 +9,31 @@ namespace CIPLOK_SI_BE.DTO
         [JsonPropertyName("transactionID")]
         public int TransactionID { get; set; }
 
-        [JsonPropertyName("STATUS")]
+        [JsonPropertyName("status")]
         public string? STATUS { get; set; }
 
-        [JsonPropertyName("StartTime")]
+        [JsonPropertyName("startTime")]
         public TimeSpan StartTime { get; set; }
 
-        [JsonPropertyName("RoomName")]
+        [JsonPropertyName("roomName")]
         public string? RoomName { get; set; }
 
-        [JsonPropertyName("ReservationDate")]
-        public DateTime ReservationDate { get; set; }
+        [JsonPropertyName("reservationDate")]
+        public string ReservationDate { get; set; }
 
-        [JsonPropertyName("Description")]
+        [JsonPropertyName("createdDate")]
+        public string CreatedDate { get; set; }
+
+        [JsonPropertyName("createdBy")]
+        public string? CreatedBy { get; set; }
+
+        [JsonPropertyName("description")]
         public string? Description { get; set; }
 
-        [JsonPropertyName("MJRequest")]
+        [JsonPropertyName("mjRequest")]
         public string? MJRequest { get; set; }
 
+        [JsonPropertyName("details")]
         public List<DetailDTO>? Details { get; set; }
 
         public class DetailDTO

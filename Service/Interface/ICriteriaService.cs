@@ -8,5 +8,8 @@ namespace CIPLOK_SI_BE.Service.Interface
         Task<ResponseModel<bool>> AddCriteria(CriteriaDTO data);
 
         Task<ResponseModel<bool>> EditCriteria(int id,CriteriaDTO data);
+
+        Task<ResponseModel<IEnumerable<CriteriaDTO>>> getDataCriteria(int pageNumber, int pageSize);
+
     }
 }
