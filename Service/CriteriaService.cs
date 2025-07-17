@@ -12,10 +12,13 @@ namespace CIPLOK_SI_BE.Service
     public class CriteriaService : ICriteriaService
     {
         private readonly AppDBContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public CriteriaService(AppDBContext context)
+
+        public CriteriaService(AppDBContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<ResponseModel<bool>> AddCriteria(CriteriaDTO data)
@@ -26,6 +29,13 @@ namespace CIPLOK_SI_BE.Service
             }
             try
             {
+                var httpContext = _httpContextAccessor.HttpContext;
+                var user = httpContext?.User;
+
+                var role = user?.FindFirst("role")?.Value;
+                var jabatan = user?.FindFirst("jabatan")?.Value;
+                var fullName = user?.FindFirst("fullName")?.Value;
+                var id = user?.FindFirst("idUser")?.Value;
                 var getLatestSettingsCode = await _context.TBL_SETTINGS.Where(f => f.CodeSettings == "CCODE").FirstOrDefaultAsync();
 
                 string updateCode = GetLastCodeHeader(getLatestSettingsCode!.DescriptionSettings);
@@ -52,7 +62,7 @@ namespace CIPLOK_SI_BE.Service
                         SubCriteriaName = sub.SubCriteriaName,
                         SubCriteriaBobot = sub.SubCriteriaBobot,
                         IDCriteria = criteriaData.IDCriteria, 
-                        CREATED_BY = "system",
+                        CREATED_BY = fullName,
                         LAST_UPDATED_DATE = null,
                     }).ToList();
                     _context.TBL_MSSUBCRITERIA.AddRange(subCriteriaData);
@@ -77,6 +87,13 @@ namespace CIPLOK_SI_BE.Service
         {
 
             try {
+                var httpContext = _httpContextAccessor.HttpContext;
+                var user = httpContext?.User;
+
+                var role = user?.FindFirst("role")?.Value;
+                var jabatan = user?.FindFirst("jabatan")?.Value;
+                var fullName = user?.FindFirst("fullName")?.Value;
+                var idUser = user?.FindFirst("idUser")?.Value;
                 var data = await _context.TBL_MSCRITERIA.FirstOrDefaultAsync(f => f.IDCriteria == id);
                 if (data == null)
                 {
@@ -85,7 +102,7 @@ namespace CIPLOK_SI_BE.Service
                 data.CriteriaName = request.CriteriaName;
                 data.Bobot = request.Bobot;
                 data.Parameter = request.Parameter == "Maksimal" ? true : false;
-                data.LAST_UPDATED_BY = "system";
+                data.LAST_UPDATED_BY = fullName;
                 data.LAST_UPDATED_DATE = DateTime.Now;
                 List<TBL_MSSUBCRITERIA> subCriteriaToInsert = new();
                 List<TBL_MSSUBCRITERIA> subCriteriaToUpdate = new();
@@ -98,7 +115,7 @@ namespace CIPLOK_SI_BE.Service
                         {
                             existingSubCriteria.SubCriteriaName = subCriteria.SubCriteriaName;
                             existingSubCriteria.SubCriteriaBobot = subCriteria.SubCriteriaBobot;
-                            existingSubCriteria.LAST_UPDATED_BY = "system";
+                            existingSubCriteria.LAST_UPDATED_BY = fullName;
                             existingSubCriteria.LAST_UPDATED_DATE = DateTime.Now;
                             subCriteriaToUpdate.Add(existingSubCriteria);
                         }
@@ -144,7 +161,6 @@ namespace CIPLOK_SI_BE.Service
         {
             try
             {
-                // Fetch criteria data and include the related SubCriteria data using GroupJoin
                 var query = _context.TBL_MSCRITERIA
                     .GroupJoin(
                         _context.TBL_MSSUBCRITERIA,
@@ -159,6 +175,7 @@ namespace CIPLOK_SI_BE.Service
                             criteria.Parameter,
                             SubCriteria = subCriteriaGroup.Select(s => new SubCriteriaDTO
                             {
+                                IDCriteria = s.IDCriteria,
                                 SubCriteriaName = s.SubCriteriaName,
                                 SubCriteriaBobot = s.SubCriteriaBobot,
                                 IDSubCriteria = s.IDSubCriteria
@@ -243,5 +260,42 @@ namespace CIPLOK_SI_BE.Service
             int newNumber = int.Parse(numericPart) + 1;
             return $"{letterPart}{newNumber}";
         }
+
+        public async Task<List<CriteriaDTO>> criteriaListData()
+        {
+            var criteriaDTOs = await _context.TBL_MSCRITERIA
+                .GroupJoin(
+                    _context.TBL_MSSUBCRITERIA,
+                    criteria => criteria.IDCriteria,
+                    subCriteria => subCriteria.IDCriteria,
+                    (criteria, subCriteriaGroup) => new
+                    {
+                        criteria.IDCriteria,
+                        criteria.CriteriaName,
+                        criteria.CriteriaCode,
+                        criteria.Bobot,
+                        criteria.Parameter,
+                        SubCriteria = subCriteriaGroup.Select(s => new SubCriteriaDTO
+                        {
+                            IDCriteria = s.IDCriteria,
+                            SubCriteriaName = s.SubCriteriaName,
+                            SubCriteriaBobot = s.SubCriteriaBobot,
+                            IDSubCriteria = s.IDSubCriteria
+                        }).ToList()
+                    })
+                .Select(u => new CriteriaDTO
+                {
+                    IDHeaderCriteria = u.IDCriteria,
+                    CriteriaName = u.CriteriaName,
+                    CriteriaCode = u.CriteriaCode,
+                    Bobot = u.Bobot,
+                    Parameter = u.Parameter == true ? "Maksimal" : "Minimal",
+                    SubCriteria = u.SubCriteria
+                })
+                .ToListAsync();
+
+            return criteriaDTOs;
+        }
+
     }
 }

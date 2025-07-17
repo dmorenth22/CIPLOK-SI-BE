@@ -11,5 +11,6 @@ namespace CIPLOK_SI_BE.Service.Interface
 
         Task<ResponseModel<IEnumerable<CriteriaDTO>>> getDataCriteria(int pageNumber, int pageSize);
 
+        Task<List<CriteriaDTO>> criteriaListData();
     }
 }

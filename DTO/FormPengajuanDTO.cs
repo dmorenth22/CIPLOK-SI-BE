@@ -19,7 +19,10 @@ namespace CIPLOK_SI_BE.DTO
         public string? RoomName { get; set; }
 
         [JsonPropertyName("reservationDate")]
-        public string ReservationDate { get; set; }
+        public DateTime? ReservationDate { get; set; }
+
+        [JsonPropertyName("reservationDateString")]
+        public string? ReservationDateString { get; set; }
 
         [JsonPropertyName("createdDate")]
         public string CreatedDate { get; set; }
@@ -33,7 +36,7 @@ namespace CIPLOK_SI_BE.DTO
         [JsonPropertyName("mjRequest")]
         public string? MJRequest { get; set; }
 
-        [JsonPropertyName("details")]
+        [JsonPropertyName("subCriteriaList")]
         public List<DetailDTO>? Details { get; set; }
 
         public class DetailDTO

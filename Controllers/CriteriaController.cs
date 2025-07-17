@@ -58,5 +58,12 @@ namespace CIPLOK_SI_BE.Controllers
             var result = await _criteriaService.getDataCriteria(pageNumber, pageSize);
             return StatusCode((int)result.StatusCode, result);
         }
+
+        [HttpPost("criteriaListData")]
+        public async Task<IActionResult> criteriaListData()
+        {
+            var result = await _criteriaService.criteriaListData();
+            return Ok(result);
+        }
     }
 }

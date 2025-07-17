@@ -15,10 +15,13 @@ namespace CIPLOK_SI_BE.Service
     public class FormPengajuanService : IFormPengajuanService
     {
         private readonly AppDBContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public FormPengajuanService(AppDBContext context)
+
+        public FormPengajuanService(AppDBContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<ResponseModel<bool>> AddRequestForm(FormPengajuanDTO data)
@@ -30,16 +33,23 @@ namespace CIPLOK_SI_BE.Service
 
             try
             {
-            
+                var httpContext = _httpContextAccessor.HttpContext;
+                var user = httpContext?.User;
+
+                var role = user?.FindFirst("role")?.Value;
+                var jabatan = user?.FindFirst("jabatan")?.Value;
+                var fullName = user?.FindFirst("fullName")?.Value;
+                var id = user?.FindFirst("idUser")?.Value;
+                var startDateInJakarta = ConvertToJakartaTimeZone((DateTime)data.ReservationDate);
                 var header = new TBL_TR_HEADER_RESERVATION
                 {
-                    //ReservationDate = data.ReservationDate.ToString("dd-MMM-yyyy"),
+                    ReservationDate = startDateInJakarta.Date,
                     StartTime = data.StartTime,
                     RoomName = data.RoomName,
                     Description = data.Description,
                     MJRequest = data.MJRequest,
                     STATUS = "Pending",
-                    CREATED_BY = "system",
+                    CREATED_BY = fullName,
                     CREATED_DATE = DateTime.Now,
                     LAST_UPDATED_DATE = null
                 };
@@ -108,7 +118,7 @@ namespace CIPLOK_SI_BE.Service
                 {
                     TransactionID = header.TransactionID,
                     RoomName = header.RoomName,
-                    ReservationDate = header.ReservationDate.ToString("dd-MMM-yyyy"),
+                    ReservationDateString = header.ReservationDate.Date.ToString("dd-MMM-yyyy"),
                     StartTime = header.StartTime,
                     STATUS = header.STATUS,
                     Description = header.Description,
@@ -240,7 +250,7 @@ namespace CIPLOK_SI_BE.Service
                 {
                     TransactionID = getDataOrderByID.TransactionID,
                     RoomName = getDataOrderByID.RoomName,
-                    ReservationDate = getDataOrderByID.ReservationDate.ToString("dd-MMM-yyyy"),
+                    ReservationDate = getDataOrderByID.ReservationDate,
                     StartTime = getDataOrderByID.StartTime,
                     STATUS = getDataOrderByID.STATUS,
                     Description = getDataOrderByID.Description,
@@ -272,6 +282,11 @@ namespace CIPLOK_SI_BE.Service
             }
         }
 
+        public static DateTime ConvertToJakartaTimeZone(DateTime utcDate)
+        {
+            var jakartaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Jakarta");
+            return TimeZoneInfo.ConvertTime(utcDate, TimeZoneInfo.Utc, jakartaTimeZone);
+        }
 
         private ResponseModel<bool> GenerateErrorResponse(string message, HttpStatusCode statusCode)
         {

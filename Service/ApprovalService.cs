@@ -286,7 +286,7 @@ namespace CIPLOK_SI_BE.Service
                 {
                     StatusCode = HttpStatusCode.InternalServerError,
                     Status = "error",
-                    Message = $"An unexpected error occurred: {ex.Message}",
+                    Message = $"An unexpected error occurred: {ex.Message + ex.StackTrace}",
                     Data = null
                 };
             }
