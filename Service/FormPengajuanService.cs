@@ -106,6 +106,8 @@ namespace CIPLOK_SI_BE.Service
                     .Select(d => new
                     {
                         d.TransactionID,
+                        d.CriteriaID,
+                        d.SubCriteriaID,
                         d.CriteriaCode,
                         d.CriteriaName,
                         d.Bobot,
@@ -118,6 +120,7 @@ namespace CIPLOK_SI_BE.Service
                 {
                     TransactionID = header.TransactionID,
                     RoomName = header.RoomName,
+                    ReservationDate = header.ReservationDate,
                     ReservationDateString = header.ReservationDate.Date.ToString("dd-MMM-yyyy"),
                     StartTime = header.StartTime,
                     STATUS = header.STATUS,
@@ -129,6 +132,8 @@ namespace CIPLOK_SI_BE.Service
                         .Where(d => d.TransactionID == header.TransactionID)
                         .Select(d => new DetailDTO
                         {
+                            CriteriaID = (int)d.CriteriaID,
+                            SubCriteriaID = (int)d.SubCriteriaID,
                             CriteriaCode = d.CriteriaCode,
                             CriteriaName = d.CriteriaName,
                             Bobot = d.Bobot,
