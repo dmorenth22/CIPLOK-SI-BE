@@ -27,6 +27,8 @@ namespace CIPLOK_SI_BE.DTO
 
         public class SubCriteriaDTO
         {
+            [JsonPropertyName("idTrDetail")]
+            public int? IDTrDetail { get; set; }
             [JsonPropertyName("idSubCriteria")]
             public int? IDSubCriteria { get; set; }
 

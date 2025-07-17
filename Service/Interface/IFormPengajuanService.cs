@@ -7,6 +7,10 @@ namespace CIPLOK_SI_BE.Service.Interface
     {
         Task<ResponseModel<bool>> AddRequestForm(FormPengajuanDTO data);
 
+        Task<ResponseModel<bool>> UpdateRequestData(int userID, FormPengajuanDTO data);
+
+
+
         Task<ResponseModel<IEnumerable<RoomDTO>>> ListRuangan();
 
         Task<ResponseModel<IEnumerable<FormPengajuanDTO>>> DataReservation(int pageNumber,int pageSize);

@@ -13,7 +13,7 @@ namespace CIPLOK_SI_BE.Models.Transaction
 
 
         [ForeignKey("TBL_TR_HEADER_RESERVATION")]
-        [JsonPropertyName("TransactionID")]
+        [JsonPropertyName("transactionID")]
         public int TransactionID { get; set; } 
 
         [JsonPropertyName("CriteriaCode")]

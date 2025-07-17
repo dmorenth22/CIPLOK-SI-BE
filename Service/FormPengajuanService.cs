@@ -1,14 +1,12 @@
 ﻿using CIPLOK_SI_BE.Context;
 using CIPLOK_SI_BE.DTO;
 using CIPLOK_SI_BE.Models;
+using CIPLOK_SI_BE.Models.Master;
 using CIPLOK_SI_BE.Models.Transaction;
 using CIPLOK_SI_BE.Service.Interface;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
-using System.Reflection.PortableExecutable;
 using static CIPLOK_SI_BE.DTO.FormPengajuanDTO;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace CIPLOK_SI_BE.Service
 {
@@ -90,6 +88,77 @@ namespace CIPLOK_SI_BE.Service
             }
         }
 
+
+        public async Task<ResponseModel<bool>> UpdateRequestData(int id, FormPengajuanDTO request)
+        {
+            try
+            {
+                var httpContext = _httpContextAccessor.HttpContext;
+                var user = httpContext?.User;
+
+                var fullName = user?.FindFirst("fullName")?.Value ?? "System";
+
+                var data = await _context.TBL_TR_HEADER_RESERVATION
+                    .FirstOrDefaultAsync(f => f.TransactionID == id);
+
+                if (data == null)
+                {
+                    return GenerateErrorResponse("Request Form not found", HttpStatusCode.NotFound);
+                }
+
+                // Update header
+                data.RoomName = request.RoomName;
+                data.MJRequest = request.MJRequest;
+                data.Description = request.Description;
+                data.ReservationDate = ConvertToJakartaTimeZone((DateTime)request.ReservationDate).Date;
+                data.StartTime = request.StartTime;
+                data.LAST_UPDATED_BY = fullName;
+                data.LAST_UPDATED_DATE = DateTime.Now;
+
+                // Remove old details
+                var existingDetails = await _context.TBL_TR_DETAIL_RESERVATION
+                    .Where(d => d.TransactionID == id)
+                    .ToListAsync();
+
+                _context.TBL_TR_DETAIL_RESERVATION.RemoveRange(existingDetails);
+
+                // Add new details
+                if (request.Details != null && request.Details.Any())
+                {
+                    var newDetails = request.Details.Select(item => new TBL_TR_DETAIL_RESERVATION
+                    {
+                        TransactionID = id,
+                        CriteriaID = item.CriteriaID,
+                        SubCriteriaID = item.SubCriteriaID,
+                        CriteriaCode = item.CriteriaCode,
+                        CriteriaName = item.CriteriaName,
+                        Bobot = item.Bobot,
+                        Parameter = item.Parameter,
+                        SubCriteriaName = item.SubCriteriaName,
+                        SubCriteriaBobot = item.SubCriteriaBobot,
+                        CREATED_BY = fullName,
+                        CREATED_DATE = DateTime.Now
+                    }).ToList();
+
+                    await _context.TBL_TR_DETAIL_RESERVATION.AddRangeAsync(newDetails);
+                }
+
+                var result = await _context.SaveChangesAsync() > 0;
+
+                return new ResponseModel<bool>
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Status = "Success",
+                    Message = "Form Request updated successfully.",
+                    Data = result
+                };
+            }
+            catch (Exception ex)
+            {
+                return GenerateErrorResponse($"An error occurred: {ex.Message}", HttpStatusCode.InternalServerError);
+            }
+        }
+
         public async Task<ResponseModel<IEnumerable<FormPengajuanDTO>>> DataReservation(int pageNumber, int pageSize)
         {
             try
@@ -105,6 +174,7 @@ namespace CIPLOK_SI_BE.Service
                     .Where(d => detailIds.Contains(d.TransactionID))
                     .Select(d => new
                     {
+                        d.IDTRDetail,
                         d.TransactionID,
                         d.CriteriaID,
                         d.SubCriteriaID,
@@ -132,6 +202,7 @@ namespace CIPLOK_SI_BE.Service
                         .Where(d => d.TransactionID == header.TransactionID)
                         .Select(d => new DetailDTO
                         {
+                            IDTrDetail = d.IDTRDetail,
                             CriteriaID = (int)d.CriteriaID,
                             SubCriteriaID = (int)d.SubCriteriaID,
                             CriteriaCode = d.CriteriaCode,
@@ -236,7 +307,7 @@ namespace CIPLOK_SI_BE.Service
                         CriteriaID = (int)d.CriteriaID,
                         SubCriteriaID = (int)d.SubCriteriaID,
                         Bobot = d.Bobot,
-                        Parameter = d.Parameter,
+                        //Parameter = (bool)d.Parameter ? "Maksimal" : "Minimal",
                         SubCriteriaName = d.SubCriteriaName,
                         SubCriteriaBobot = d.SubCriteriaBobot
                     })

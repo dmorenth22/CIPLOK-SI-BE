@@ -41,6 +41,10 @@ namespace CIPLOK_SI_BE.DTO
 
         public class DetailDTO
         {
+            [JsonPropertyName("idTrDetail")]
+            public int? IDTrDetail { get; set; }
+
+
             [JsonPropertyName("criteriaCode")]
             public string? CriteriaCode { get; set; }
 

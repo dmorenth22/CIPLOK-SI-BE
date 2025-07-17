@@ -1,4 +1,5 @@
 ﻿using CIPLOK_SI_BE.DTO;
+using CIPLOK_SI_BE.Service;
 using CIPLOK_SI_BE.Service.Interface;
 using Microsoft.AspNetCore.Mvc;
 
@@ -51,6 +52,14 @@ namespace CIPLOK_SI_BE.Controllers
             var response = await _formPengajuanService.GetDataByID(id);
             return StatusCode((int)response.StatusCode, response);
         }
+
+        [HttpPost("updateFormPengajuan/{transactionID}")]
+        public async Task<IActionResult> UpdateRequestData(int transactionID, [FromBody] FormPengajuanDTO data)
+        {
+            var response = await _formPengajuanService.UpdateRequestData(transactionID, data);
+            return StatusCode((int)response.StatusCode, response);
+        }
+
 
         //[HttpGet("ruanganList")]
         //public async Task<IActionResult> RuanganList()
