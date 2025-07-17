@@ -6,7 +6,6 @@ using CIPLOK_SI_BE.Service.Interface;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
 using static CIPLOK_SI_BE.DTO.CriteriaDTO;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace CIPLOK_SI_BE.Service
 {
@@ -41,7 +40,7 @@ namespace CIPLOK_SI_BE.Service
                    CREATED_BY = "system",
                    LAST_UPDATED_DATE = null,
                    Bobot = data.Bobot,
-                   Parameter = data.Parameter  == "Maximal" ? true : false,
+                   Parameter = data.Parameter  == "Maksimal" ? true : false,
 
                 };
                 _context.TBL_MSCRITERIA.Add(criteriaData);
@@ -85,7 +84,7 @@ namespace CIPLOK_SI_BE.Service
                 }
                 data.CriteriaName = request.CriteriaName;
                 data.Bobot = request.Bobot;
-                data.Parameter = request.Parameter == "Maximal" ? true : false;
+                data.Parameter = request.Parameter == "Maksimal" ? true : false;
                 data.LAST_UPDATED_BY = "system";
                 data.LAST_UPDATED_DATE = DateTime.Now;
                 List<TBL_MSSUBCRITERIA> subCriteriaToInsert = new();
@@ -173,10 +172,11 @@ namespace CIPLOK_SI_BE.Service
                 var criteriaDTOs = await query
                     .Select(u => new CriteriaDTO
                     {
+                        IDHeaderCriteria= u.IDCriteria,
                         CriteriaName = u.CriteriaName,
                         CriteriaCode = u.CriteriaCode,
                         Bobot = u.Bobot,
-                        Parameter = u.Parameter ? "Maksimal" : "Minimal",
+                        Parameter = u.Parameter == true ? "Maksimal" : "Minimal",
                         SubCriteria = u.SubCriteria
                     })
                     .ToListAsync();
