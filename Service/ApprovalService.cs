@@ -80,20 +80,24 @@ namespace CIPLOK_SI_BE.Service
                 var user = httpContext?.User;
                 var fullName = user?.FindFirst("fullName")?.Value ?? "System";
                 var x = request.ReservationDate;
-                DateTime reservationDate = DateTime.ParseExact(x, "dd-MMMM-yyyy", new CultureInfo("id-ID"), DateTimeStyles.None); 
+                DateTime reservationDate = DateTime.ParseExact(x, "dd-MMMM-yyyy", new CultureInfo("id-ID"), DateTimeStyles.None);
 
                 var validateApproval = await _context.TBL_TR_HEADER_RESERVATION
                     .Where(f => f.RoomName == request.RoomName
                         && f.ReservationDate == reservationDate
                         && f.StartTime == request.StartTime)
                     .ToListAsync();
-                if (validateApproval.Count > 0 && validateApproval.Where(f=>f.STATUS == request.Status).Any())
+                if (request.Status == "Approved")
                 {
-                    return GenerateErrorResponse(
-                        $"Cannot Approve Request Room {request.RoomName} on Date '{request.ReservationDate}' and Time {request.StartTime} Already Approved",
-                        HttpStatusCode.BadRequest
-                    );
+                    if (validateApproval.Count > 0 && validateApproval.Where(f => f.STATUS == request.Status).Any())
+                    {
+                        return GenerateErrorResponse(
+                            $"Cannot Approve Request Room {request.RoomName} on Date '{request.ReservationDate}' and Time {request.StartTime} Already Approved",
+                            HttpStatusCode.BadRequest
+                        );
+                    }
                 }
+              
                 var data = validateApproval.FirstOrDefault(f => f.TransactionID == id);
                 if (data == null)
                 {
@@ -176,6 +180,7 @@ namespace CIPLOK_SI_BE.Service
                                   select new
                                   {
                                       header.TransactionID,
+                                      header.STATUS,
                                       header.ReservationDate,
                                       header.StartTime,
                                       header.Description,
@@ -254,23 +259,25 @@ namespace CIPLOK_SI_BE.Service
                     }
                     dict["mjMengetahui"] = item.MJRequest;
                     dict["createdBy"] = item.CREATED_BY;
-
+                    dict["status"] = item.STATUS;
 
                     reservationData.Add(row);
                 }
 
                 var scoreData = new List<ExpandoObject>();
                 var scoreMap = new Dictionary<int, decimal>();
-
+                var allDetailsByTransaction = groupedDetails
+                    .Where(g => transactionIds.Contains(g.Key))
+                    .SelectMany(g => g.Value)
+                    .ToList();
                 foreach (var item in data)
                 {
                     dynamic row = new ExpandoObject();
                     var dict = (IDictionary<string, object>)row;
                     dict["transactionID"] = item.TransactionID;
-                    dict["tanggalPengajuan"] = item.CREATED_DATE.Value.Date.ToString("dd-MMMM-yyyy");
+                    dict["tanggalPengajuan"] = item.CREATED_DATE?.ToString("dd-MMMM-yyyy");
 
                     decimal totalScore = 0;
-                    int count = 0;
 
                     if (groupedDetails.TryGetValue(item.TransactionID, out var detailItems))
                     {
@@ -279,33 +286,33 @@ namespace CIPLOK_SI_BE.Service
                             if (!criteriaMap.TryGetValue((int)detail.CriteriaID!, out var meta))
                                 continue;
 
-                            var allForCriteria = details.Where(d => d.CriteriaID == detail.CriteriaID).ToList();
+                            var allForCriteria = allDetailsByTransaction
+                                .Where(d => d.CriteriaID == detail.CriteriaID)
+                                .ToList();
+
                             var max = allForCriteria.Max(d => d.SubCriteriaBobot);
                             var min = allForCriteria.Min(d => d.SubCriteriaBobot);
 
                             decimal score = 1.0m;
 
-                            if (!(bool)detail.Parameter!)
+                            // Use the Parameter to choose scoring logic
+                            if (detail.Parameter is bool param)
                             {
-                                score = Math.Round((decimal)((decimal)((decimal)(min) / detail.SubCriteriaBobot) * detail.Bobot), 2);
-                            }
-                            // untuk ngecek nilai maximal
-                            else if ((bool)detail.Parameter)
-                            {
-                                score = Math.Round((decimal)((decimal)((decimal)(max) / detail.SubCriteriaBobot) * detail.Bobot), 2);
+                                score = param
+                                    ? Math.Round((decimal)((detail.SubCriteriaBobot / (decimal)max) * detail.Bobot), 2)
+                                    : Math.Round((decimal)(((decimal)min / detail.SubCriteriaBobot) * detail.Bobot), 2);
                             }
                             else
                             {
                                 score = 0;
                             }
-                            score = Math.Round(score, 2);
+
                             dict[meta.PropertyName] = score;
                             totalScore += score;
-                            count++;
                         }
                     }
 
-                    dict["finalScore"] = Math.Round(totalScore,2);
+                    dict["finalScore"] = Math.Round(totalScore, 2);
                     scoreMap[item.TransactionID] = totalScore;
                     scoreData.Add(row);
                 }
@@ -361,9 +368,9 @@ namespace CIPLOK_SI_BE.Service
         }
 
         public async Task<ResponseModel<IEnumerable<ExpandoObject>>> getListApproval(
-      int pageNumber,
-      int pageSize,
-      string date) // Accept string date parameter
+          int pageNumber,
+          int pageSize,
+          string date) // Accept string date parameter
         {
             try
             {

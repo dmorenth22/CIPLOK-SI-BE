@@ -48,9 +48,9 @@ namespace CIPLOK_SI_BE.Controllers
 
         [HttpPost("getDataMajelis")]
         public async Task<IActionResult> GetListDataMajelis([FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10)
+            [FromQuery] int pageSize = 10,string? source="")
         {
-            var response = await _userService.GetDataMajelis(pageNumber,pageSize);
+            var response = await _userService.GetDataMajelis(pageNumber,pageSize, source);
             return StatusCode((int)response.StatusCode, response);
         }
 

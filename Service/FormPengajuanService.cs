@@ -163,48 +163,47 @@ namespace CIPLOK_SI_BE.Service
         {
             try
             {
-                int totalCount = await _context.TBL_TR_HEADER_RESERVATION.CountAsync();
-                var headers = await _context.TBL_TR_HEADER_RESERVATION
-                    .Skip((pageNumber - 1) * pageSize)
+                var httpContext = _httpContextAccessor.HttpContext;
+                var user = httpContext?.User;
+
+                var role = user?.FindFirst("role")?.Value?.ToLower();
+                var fullName = user?.FindFirst("fullName")?.Value;
+                int skip = (pageNumber - 1) * pageSize;
+                var query = _context.TBL_TR_HEADER_RESERVATION.AsQueryable();
+                if (role != "admin")
+                {
+                    query = query.Where(h => h.CREATED_BY == fullName);
+                }
+                int totalCount = await query.CountAsync();
+                var headers = await query
+                    .Skip(skip)
                     .Take(pageSize)
                     .ToListAsync();
+                var transactionIds = headers.Select(h => h.TransactionID).ToList();
 
-                var detailIds = headers.Select(h => h.TransactionID).ToList();
                 var details = await _context.TBL_TR_DETAIL_RESERVATION
-                    .Where(d => detailIds.Contains(d.TransactionID))
-                    .Select(d => new
-                    {
-                        d.IDTRDetail,
-                        d.TransactionID,
-                        d.CriteriaID,
-                        d.SubCriteriaID,
-                        d.CriteriaCode,
-                        d.CriteriaName,
-                        d.Bobot,
-                        d.Parameter,
-                        d.SubCriteriaName,
-                        d.SubCriteriaBobot
-                    })
+                    .Where(d => transactionIds.Contains(d.TransactionID))
                     .ToListAsync();
+
                 var result = headers.Select(header => new FormPengajuanDTO
                 {
                     TransactionID = header.TransactionID,
                     RoomName = header.RoomName,
                     ReservationDate = header.ReservationDate,
-                    ReservationDateString = header.ReservationDate.Date.ToString("dd-MMM-yyyy"),
+                    ReservationDateString = header.ReservationDate.ToString("dd-MMM-yyyy"),
                     StartTime = header.StartTime,
                     STATUS = header.STATUS,
                     Description = header.Description,
                     MJRequest = header.MJRequest,
                     CreatedBy = header.CREATED_BY,
-                    CreatedDate = header.CREATED_DATE!.Value.ToString("dd-MMM-yyyy"),
+                    CreatedDate = header.CREATED_DATE?.ToString("dd-MMM-yyyy"),
                     Details = details
                         .Where(d => d.TransactionID == header.TransactionID)
                         .Select(d => new DetailDTO
                         {
                             IDTrDetail = d.IDTRDetail,
-                            CriteriaID = (int)d.CriteriaID,
-                            SubCriteriaID = (int)d.SubCriteriaID,
+                            CriteriaID = d.CriteriaID ?? 0,
+                            SubCriteriaID = d.SubCriteriaID ?? 0,
                             CriteriaCode = d.CriteriaCode,
                             CriteriaName = d.CriteriaName,
                             Bobot = d.Bobot,
@@ -214,7 +213,9 @@ namespace CIPLOK_SI_BE.Service
                         })
                         .ToList()
                 }).ToList();
+
                 int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
                 return new ResponseModel<IEnumerable<FormPengajuanDTO>>
                 {
                     StatusCode = HttpStatusCode.OK,
@@ -234,7 +235,7 @@ namespace CIPLOK_SI_BE.Service
                     StatusCode = HttpStatusCode.InternalServerError,
                     Status = "Error",
                     Message = $"An error occurred: {ex.Message}",
-                    Data = new List<FormPengajuanDTO>(),
+                    Data = [],
                     PageNumber = pageNumber,
                     PageSize = pageSize,
                     TotalData = 0,
@@ -242,6 +243,7 @@ namespace CIPLOK_SI_BE.Service
                 };
             }
         }
+
 
 
 

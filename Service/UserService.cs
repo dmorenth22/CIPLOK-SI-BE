@@ -5,6 +5,7 @@ using CIPLOK_SI_BE.Models;
 using CIPLOK_SI_BE.Models.Master;
 using CIPLOK_SI_BE.Service.Interface;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 using System.Net;
 using System.Security.Cryptography;
 
@@ -28,12 +29,18 @@ namespace CIPLOK_SI_BE.Service
         {
             try
             {
+                var httpContext = _httpContextAccessor.HttpContext;
+                var user = httpContext?.User;
+                var role = user?.FindFirst("role")?.Value?.ToLower();
+                var fullName = user?.FindFirst("fullName")?.Value;
+                int skip = (pageNumber - 1) * pageSize;
                 var query = _context.TBL_MSUSERS.AsQueryable();
+                if (role != "admin")
+                {
+                    query = query.Where(h => h.CREATED_BY == fullName);
+                }
 
-                // Fetch total count first
                 int totalCount = await query.CountAsync();
-
-                // Fetch the data without decrypting the password in the query
                 var jemaatDataList = await query
                     .Skip((pageNumber - 1) * pageSize)
                     .Take(pageSize)
@@ -55,7 +62,7 @@ namespace CIPLOK_SI_BE.Service
                 {
                     return new ResponseModel<IEnumerable<UserDTO>>
                     {
-                        StatusCode = HttpStatusCode.NotFound,
+                        StatusCode = HttpStatusCode.BadRequest,
                         Status = "error",
                         Message = "No data found",
                         Data = new List<UserDTO>(),
@@ -65,11 +72,9 @@ namespace CIPLOK_SI_BE.Service
                         TotalPages = 0
                     };
                 }
-
-                // Loop through the data and decrypt the passwords
-                foreach (var user in jemaatDataList)
+                foreach (var item in jemaatDataList)
                 {
-                    user.Password = Decrypt(user.Password);  // Decrypt the password after fetching the data
+                    item.Password = Decrypt(item.Password);
                 }
 
                 // Return the response model with decrypted data
@@ -129,7 +134,7 @@ namespace CIPLOK_SI_BE.Service
                     UserName = data.Email,
                     AnggotaKomisi = data.AnggotaKomisi,
                     CREATED_DATE = DateTime.Now,
-                    CREATED_BY = fullName,
+                    CREATED_BY = data.FullName,
                     LAST_UPDATED_DATE = null
                    
                 };
@@ -173,6 +178,7 @@ namespace CIPLOK_SI_BE.Service
                         Data = false
                     };
                 }
+                jemaat.Address = request.Address;
                 jemaat.AlternatePhoneNo = request.AlternatePhoneNo;
                 jemaat.PhoneNo = request.PhoneNo;
                 jemaat.FullName = request.FullName;
@@ -267,13 +273,32 @@ namespace CIPLOK_SI_BE.Service
             }
         }
 
-        public async Task<ResponseModel<IEnumerable<MajelistDataDTO>>> GetDataMajelis(int pageNumber, int pageSize)
+        public async Task<ResponseModel<IEnumerable<MajelistDataDTO>>> GetDataMajelis(int pageNumber, int pageSize,string source)
         {
             try
             {
-                var query = _context.TBL_MSUSERS.Where(x=>x.RoleID == 2)
-                    .Include(u => u.Majelis)
-                    .AsQueryable();
+                var httpContext = _httpContextAccessor.HttpContext;
+                var user = httpContext?.User;
+
+                var role = user?.FindFirst("role")?.Value?.ToLower();
+                var fullName = user?.FindFirst("fullName")?.Value;
+
+                int skip = (pageNumber - 1) * pageSize;
+                var query = _context.TBL_MSUSERS.Where(x => x.RoleID == 2)
+                          .Include(u => u.Majelis)
+                          .AsQueryable();
+                if (role != "admin")
+                {
+                    if (source != "")
+                    {
+                     query = query.Where(h => h.CREATED_BY == fullName);
+
+                    }
+                  
+                }
+                
+             
+
 
                 int totalCount = await query.CountAsync();
 
@@ -298,7 +323,7 @@ namespace CIPLOK_SI_BE.Service
                 {
                     return new ResponseModel<IEnumerable<MajelistDataDTO>>
                     {
-                        StatusCode = HttpStatusCode.NotFound,
+                        StatusCode = HttpStatusCode.BadRequest,
                         Status = "error",
                         Message = "No data found",
                         Data = new List<MajelistDataDTO>(),

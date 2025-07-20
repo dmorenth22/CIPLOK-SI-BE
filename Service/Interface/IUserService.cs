@@ -19,7 +19,7 @@ namespace CIPLOK_SI_BE.Service.Interface
 
 
         Task<ResponseModel<IEnumerable<MajelistDataDTO>>> GetDataMajelis(int pageNumber,
-            int pageSize);
+            int pageSize,string source);
 
         Task<ResponseModel<IEnumerable<SettingsDTO>>> ListDataJabatan(string codeDesc);
 
