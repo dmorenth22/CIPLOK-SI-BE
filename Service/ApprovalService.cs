@@ -414,7 +414,7 @@ namespace CIPLOK_SI_BE.Service
                     };
                 }
 
-                var totalCount = data.Count(); // Total records
+                var totalCount = data.Count(); // Total records 
                 var totalPages = (int)Math.Ceiling((double)totalCount / pageSize); // Calculate total pages
 
                 // Paginate the data for the current page
